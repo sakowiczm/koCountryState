@@ -1,63 +1,39 @@
 ﻿/// <reference path="knockout-2.0.0.debug.js" />
+/// <reference path="jquery-1.6.2.js" />
 
 var my = {};
-/*
-var countryList = [
-    { code: "CA", name: "Canada" },
-    { code: "US", name: "United States" },
-    { code: "UK", name: "United Kingdom" }
-];
-*/
-var stateList = [
-    { countryCode: "CA", code: "NU", name: "Nunavut" },
-    { countryCode: "CA", code: "ON", name: "Ontario" },
-    { countryCode: "CA", code: "QU", name: "Quebec" },
-    { countryCode: "CA", code: "NS", name: "Nova Scotia" },
-    { countryCode: "CA", code: "NB", name: "New Brunswick" },
-    { countryCode: "CA", code: "MA", name: "Manitoba" },
-    { countryCode: "CA", code: "PEI", name: "Prince Edward Island" },
-    { countryCode: "CA", code: "SA", name: "Saskatchewan" },
-    { countryCode: "CA", code: "AL", name: "Alberta" },
-    { countryCode: "CA", code: "NL", name: "Newfoundland and Labrador" },
-
-    { countryCode: "US", code: "NY", name: "New-York" },
-    { countryCode: "US", code: "CA", name: "California" },
-    { countryCode: "US", code: "WA", name: "Washington" },
-    { countryCode: "US", code: "VE", name: "Vermont" },
-
-    { countryCode: "UK", code: "BR", name: "Britian" },
-    { countryCode: "UK", code: "NI", name: "Northern Ireland" },
-    { countryCode: "UK", code: "SC", name: "Scotland" },
-    { countryCode: "UK", code: "WA", name: "Wales" }
-];
 
 function MyViewModel() {
-    this.countries = ko.observableArray(countryList);
-    this.choosenCountry = ko.observable();
-    this.choosenState = ko.observable();
+    var self = this;
 
-    this.states = ko.computed(function () {
-        var country = this.choosenCountry();
+    self.countries = ko.observableArray(countryList);
+    self.choosenCountry = ko.observable();
+    self.choosenState = ko.observable();
+    self.states = ko.observable([]);
 
-        if (country == undefined)
-            return [];
+    self.choosenCountry.subscribe(function () {
+        var country = self.choosenCountry();
 
-        return ko.utils.arrayFilter(stateList, function (state) {
-            return state.countryCode == country.code;
-        });
-    }, this);
+        if (country != undefined) {
+            $.getJSON('/Home/GetStates?countryCode=' + country.code, function (data) {
+                self.states(data);
+            });
+        }
 
-    this.sendVisible = ko.computed(function () {
-        return this.choosenCountry() != undefined && this.choosenState() != undefined;
-    }, this);
+        self.states([]);
+    });
 
-    this.sendSelection = function () {
+    self.sendVisible = ko.computed(function () {
+        return self.choosenCountry() != undefined && self.choosenState() != undefined;
+    });
+
+    self.sendSelection = function () {
         $.ajax({
             url: "/Home/SendSelection/",
             type: 'post',
             data: ko.toJSON({
-                countryCode: this.choosenCountry().code,
-                stateCode: this.choosenState().code
+                countryCode: self.choosenCountry().code,
+                stateCode: self.choosenState().code
             }),
             contentType: 'application/json',
             success: function (result) {
@@ -66,9 +42,10 @@ function MyViewModel() {
             error: function (result) {
                 alert('error:' + result);
             }
-        }, this);
+        });
     };
 };
+
 
 $(function () {
     ko.applyBindings(new MyViewModel());
